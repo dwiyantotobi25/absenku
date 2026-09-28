@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AbsenKu</title>
+<style>
+  /* ===== Warna & ukuran dasar (satu warna utama, satu font) ===== */
+  :root {
+    --utama: #0f766e;
+    --utama-gelap: #115e59;
+    --bahaya: #b91c1c;
+    --teks: #1f2937;
+    --teks-redup: #6b7280;
+    --garis: #d1d5db;
+    --latar: #f3f4f6;
+    --putih: #ffffff;
+    --hadir: #15803d;
+    --izin: #1d4ed8;
+    --sakit: #b45309;
+    --alpa: #b91c1c;
+    --jarak: 12px;
+    --sudut: 10px;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    color: var(--teks);
+    background: var(--latar);
+  }
+  h1 { margin: 0 0 var(--jarak); font-size: 1.4rem; }
+  h2 { font-size: 1.1rem; margin: calc(var(--jarak) * 2) 0 var(--jarak); }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+
+  /* ===== Input & tombol ===== */
+  input, select, textarea {
+    width: 100%;
+    font: inherit;
+    padding: 10px;
+    border: 1px solid var(--garis);
+    border-radius: var(--sudut);
+    background: var(--putih);
+  }
+  textarea { resize: vertical; }
+  button {
+    font: inherit;
+    font-weight: 600;
+    padding: 10px 16px;
+    border: 2px solid var(--utama);
+    border-radius: var(--sudut);
+    background: var(--utama);
+    color: var(--putih);
+    cursor: pointer;
+    min-height: 44px; /* mudah disentuh jari */
+  }
+  button:hover { background: var(--utama-gelap); }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 3px solid #fbbf24;
+    outline-offset: 2px;
+  }
+  .tombol-kedua { background: var(--putih); color: var(--utama); }
+  .tombol-kedua:hover { background: #ecfdf5; }
+  .tombol-bahaya { background: var(--putih); color: var(--bahaya); border-color: var(--bahaya); }
+  .tombol-bahaya:hover { background: #fef2f2; }
+  #tombolYa { background: var(--bahaya); color: var(--putih); }
+  .kecil { padding: 6px 12px; min-height: 36px; font-size: 0.9rem; }
+
+  /* ===== Kepala & tab ===== */
+  .kepala { background: var(--utama); color: var(--putih); padding: var(--jarak) 16px; }
+  .kepala label { color: var(--putih); }
+  .baris-kelas { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-top: 8px; }
+  .baris-kelas label { width: 100%; margin: 0; }
+  .baris-kelas select, .baris-kelas input { flex: 1; min-width: 0; }
+  .kepala .tombol-kedua { border-color: var(--putih); }
+  .kepala button[type="submit"] { background: var(--putih); color: var(--utama); border-color: var(--putih); }
+  .tab { display: flex; background: var(--putih); border-bottom: 1px solid var(--garis); }
+  .tab-tombol {
+    flex: 1; border: 0; border-radius: 0; background: transparent;
+    color: var(--teks-redup); border-bottom: 3px solid transparent;
+  }
+  .tab-tombol:hover { background: var(--latar); }
+  .tab-tombol.aktif { color: var(--utama); border-bottom-color: var(--utama); }
+
+  /* ===== Isi halaman ===== */
+  main { max-width: 720px; margin: 0 auto; padding: 16px; }
+  #formSiswa button { margin-top: 8px; width: 100%; }
+  .info { color: var(--teks-redup); background: var(--putih); padding: var(--jarak); border-radius: var(--sudut); }
+  .info:empty { display: none; }
+  .lencana { background: var(--utama); color: var(--putih); border-radius: 999px; padding: 2px 10px; font-size: 0.85rem; }
+  .daftar { list-style: none; padding: 0; margin: 0; }
+  .daftar li {
+    background: var(--putih); border: 1px solid var(--garis); border-radius: var(--sudut);
+    padding: 10px var(--jarak); margin-bottom: 8px;
+  }
+  .nama { overflow-wrap: anywhere; } /* nama panjang tidak merusak tampilan */
+  .baris-siswa { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+  /* ===== Absen: tombol status H/I/S/A ===== */
+  .baris-absen { display: flex; flex-direction: column; gap: 8px; }
+  .grup-status { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tombol-status { padding: 8px 0; background: var(--putih); }
+  .tombol-status.status-H { color: var(--hadir); border-color: var(--hadir); }
+  .tombol-status.status-I { color: var(--izin);  border-color: var(--izin); }
+  .tombol-status.status-S { color: var(--sakit); border-color: var(--sakit); }
+  .tombol-status.status-A { color: var(--alpa);  border-color: var(--alpa); }
+  .tombol-status:hover { background: var(--latar); }
+  /* Status yang sedang dipilih: warna penuh */
+  .tombol-status[aria-pressed="true"] { color: var(--putih); }
+  .tombol-status.status-H[aria-pressed="true"] { background: var(--hadir); }
+  .tombol-status.status-I[aria-pressed="true"] { background: var(--izin); }
+  .tombol-status.status-S[aria-pressed="true"] { background: var(--sakit); }
+  .tombol-status.status-A[aria-pressed="true"] { background: var(--alpa); }
+
+  .ringkasan { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: var(--jarak) 0; }
+  .ringkasan-item {
+    background: var(--putih); border-radius: var(--sudut); text-align: center;
+    padding: 8px 2px; border-top: 4px solid var(--garis);
+  }
+  .ringkasan-item strong { display: block; font-size: 1.3rem; }
+  .ringkasan-item span { font-size: 0.8rem; color: var(--teks-redup); }
+  .ringkasan-item.status-H { border-top-color: var(--hadir); }
+  .ringkasan-item.status-I { border-top-color: var(--izin); }
+  .ringkasan-item.status-S { border-top-color: var(--sakit); }
+  .ringkasan-item.status-A { border-top-color: var(--alpa); }
+
+  /* ===== Pesan (toast) & dialog ===== */
+  .pesan {
+    position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 480px; margin: 0 auto;
+    padding: 12px 16px; border-radius: var(--sudut); color: var(--putih);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10;
+  }
+  .pesan.berhasil { background: var(--hadir); }
+  .pesan.gagal { background: var(--bahaya); }
+  .pesan.info { background: var(--izin); }
+  dialog { border: 0; border-radius: var(--sudut); padding: 20px; max-width: 360px; width: calc(100% - 32px); }
+  dialog::backdrop { background: rgba(0,0,0,0.5); }
+  .aksi-dialog { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* ===== Layar lebar (tablet/laptop) ===== */
+  @media (min-width: 600px) {
+    .baris-absen { flex-direction: row; justify-content: space-between; align-items: center; }
+    .grup-status { width: 240px; flex-shrink: 0; }
+    #formSiswa button { width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="kepala">
+  <h1>AbsenKu</h1>
+  <div class="baris-kelas">
+    <label for="pilihKelas">Kelas</label>
+    <select id="pilihKelas"></select>
+    <button type="button" id="tombolKelasBaru" class="tombol-kedua">+ Kelas</button>
+  </div>
+  <form id="formKelasBaru" class="baris-kelas" hidden>
+    <label for="inputKelasBaru">Nama kelas baru</label>
+    <input id="inputKelasBaru" maxlength="30" placeholder="contoh: XI TJKT 1" autocomplete="off">
+    <button type="submit">Buat</button>
+  </form>
+</header>
+
+<nav class="tab" aria-label="Menu utama">
+  <button type="button" class="tab-tombol aktif" data-tab="halSiswa">Siswa</button>
+  <button type="button" class="tab-tombol" data-tab="halAbsen">Absen</button>
+</nav>
+
+<main>
+  <!-- F1: Kelola data siswa -->
+  <section id="halSiswa" class="halaman">
+    <h2>Tambah Siswa</h2>
+    <form id="formSiswa">
+      <label for="inputNama">Nama siswa (satu nama per baris)</label>
+      <textarea id="inputNama" rows="5" placeholder="Budi Santoso&#10;Siti Aminah"></textarea>
+      <button type="submit">Tambah</button>
+    </form>
+    <h2>Daftar Siswa <span id="jumlahSiswa" class="lencana">0</span></h2>
+    <p id="kosongSiswa" class="info"></p>
+    <ol id="daftarSiswa" class="daftar"></ol>
+  </section>
+
+  <!-- F2: Absen harian -->
+  <section id="halAbsen" class="halaman" hidden>
+    <label for="inputTanggal">Tanggal</label>
+    <input type="date" id="inputTanggal">
+    <div id="ringkasan" class="ringkasan" aria-live="polite"></div>
+    <p id="kosongAbsen" class="info"></p>
+    <ul id="daftarAbsen" class="daftar"></ul>
+  </section>
+</main>
+
+<div id="pesan" class="pesan" role="status" aria-live="polite" hidden></div>
+
+<dialog id="dialogKonfirmasi">
+  <p id="teksKonfirmasi"></p>
+  <div class="aksi-dialog">
+    <button type="button" id="tombolBatal" class="tombol-kedua">Batal</button>
+    <button type="button" id="tombolYa">Ya, hapus</button>
+  </div>
+</dialog>
+
+<script>
+"use strict";
+
+/* =========================================================
+   KONSTANTA & KEADAAN (state) APLIKASI
+   ========================================================= */
+const KUNCI_STORAGE = "absenku_v1";
+const STATUS_VALID = ["H", "I", "S", "A"];
+const NAMA_STATUS = { H: "Hadir", I: "Izin", S: "Sakit", A: "Alpa" };
+const MAKS_NAMA = 60;
+const MAKS_KELAS = 30;
+
+let data;          // seluruh data aplikasi (isi dari localStorage)
+let kelasAktif;    // kelas yang sedang dipilih di atas
+let timerPesan;    // pengatur waktu untuk menyembunyikan pesan
+
+/* =========================================================
+   1. AKSES DATA — hanya bagian ini yang menyentuh localStorage
+   ========================================================= */
+function dataKosong() {
+  return { versi: 1, siswa: [], absen: {}, kelasTerakhir: "" };
+}
+
+// Membaca data dari localStorage. Kalau rusak, data lama disimpan terpisah
+// (supaya tidak hilang) lalu aplikasi mulai dengan data kosong.
+function muatData() {
+  let teks = null;
+  try {
+    teks = localStorage.getItem(KUNCI_STORAGE);
+    if (!teks) return dataKosong();
+    const hasil = JSON.parse(teks);
+    const bentukBenar = Array.isArray(hasil.siswa) && hasil.absen && typeof hasil.absen === "object";
+    if (!bentukBenar) throw new Error("Struktur data tidak dikenal");
+    if (typeof hasil.kelasTerakhir !== "string") hasil.kelasTerakhir = "";
+    return hasil;
+  } catch (err) {
+    console.error("Gagal membaca data AbsenKu:", err);
+    try { if (teks) localStorage.setItem(KUNCI_STORAGE + "_rusak", teks); } catch (e) { /* abaikan */ }
+    tampilkanPesan("Data lama tidak bisa dibaca. Aplikasi mulai dengan data kosong.", "gagal");
+    return dataKosong();
+  }
+}
+
+// Menyimpan seluruh data. Mengembalikan true kalau berhasil.
+function simpanData() {
+  try {
+    localStorage.setItem(KUNCI_STORAGE, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error("Gagal menyimpan data AbsenKu:", err);
+    return false;
+  }
+}
+
+/* =========================================================
+   2. LOGIKA — mengolah data, TIDAK menyentuh HTML
+   ========================================================= */
+
+// Buang spasi di awal/akhir dan spasi ganda di tengah.
+function rapikanTeks(teks) {
+  return String(teks).trim().replace(/\s+/g, " ");
+}
+
+// Bandingkan dua nama tanpa peduli huruf besar/kecil.
+function samaNama(a, b) {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+// ID unik: waktu sekarang + 4 karakter acak.
+function buatId() {
+  return "s_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+}
+
+function tanggalHariIni() {
+  const d = new Date();
+  const dua = (n) => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + dua(d.getMonth() + 1) + "-" + dua(d.getDate());
+}
+
+function tanggalValid(tanggal) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(tanggal);
+}
+
+// Daftar kelas diambil dari data siswa + kelas aktif (bisa masih kosong).
+function daftarKelas() {
+  const semua = data.siswa.map((s) => s.kelas);
+  if (kelasAktif) semua.push(kelasAktif);
+  return [...new Set(semua)].sort((a, b) => a.localeCompare(b, "id"));
+}
+
+// Siswa di satu kelas, diurutkan sesuai abjad.
+function siswaDiKelas(kelas) {
+  return data.siswa
+    .filter((s) => s.kelas === kelas)
+    .sort((a, b) => a.nama.localeCompare(b.nama, "id"));
+}
+
+// F1: tambah banyak nama sekaligus (satu nama per baris).
+// Nama ganda di kelas yang sama dilewati.
+function tambahBanyakSiswa(kelas, teksNama) {
+  const hasil = { ditambah: 0, ganda: 0, terlaluPanjang: 0 };
+  const daftarNama = teksNama.split("\n").map(rapikanTeks).filter((n) => n !== "");
+  for (const nama of daftarNama) {
+    if (nama.length > MAKS_NAMA) { hasil.terlaluPanjang++; continue; }
+    const sudahAda = data.siswa.some((s) => s.kelas === kelas && samaNama(s.nama, nama));
+    if (sudahAda) { hasil.ganda++; continue; }
+    data.siswa.push({ id: buatId(), kelas: kelas, nama: nama });
+    hasil.ditambah++;
+  }
+  return hasil;
+}
+
+// F1: hapus siswa beserta semua catatan absennya.
+function hapusSiswa(id) {
+  data.siswa = data.siswa.filter((s) => s.id !== id);
+  for (const kunci of Object.keys(data.absen)) {
+    delete data.absen[kunci][id];
+    if (Object.keys(data.absen[kunci]).length === 0) delete data.absen[kunci];
+  }
+}
+
+// Kunci absen sesuai PRD, contoh: "2026-09-29|XI TJKT 1"
+function kunciAbsen(tanggal, kelas) {
+  return tanggal + "|" + kelas;
+}
+
+function ambilStatus(tanggal, kelas, idSiswa) {
+  const catatan = data.absen[kunciAbsen(tanggal, kelas)];
+  return catatan ? catatan[idSiswa] : undefined;
+}
+
+// F2: atur status. Klik status yang sama sekali lagi = batalkan.
+function aturStatus(tanggal, kelas, idSiswa, status) {
+  if (!STATUS_VALID.includes(status)) throw new Error("Status tidak valid: " + status);
+  const kunci = kunciAbsen(tanggal, kelas);
+  if (!data.absen[kunci]) data.absen[kunci] = {};
+  if (data.absen[kunci][idSiswa] === status) {
+    delete data.absen[kunci][idSiswa];
+  } else {
+    data.absen[kunci][idSiswa] = status;
+  }
+  if (Object.keys(data.absen[kunci]).length === 0) delete data.absen[kunci];
+}
+
+// F2: hitung jumlah H/I/S/A/Belum untuk satu kelas di satu tanggal.
+function hitungRingkasan(tanggal, kelas) {
+  const r = { H: 0, I: 0, S: 0, A: 0, Belum: 0 };
+  for (const s of siswaDiKelas(kelas)) {
+    const status = ambilStatus(tanggal, kelas, s.id);
+    if (STATUS_VALID.includes(status)) r[status]++;
+    else r.Belum++;
+  }
+  return r;
+}
+
+/* =========================================================
+   3. TAMPILAN — menggambar ke layar
+   ========================================================= */
+
+// PENTING (keamanan / anti-XSS): semua teks dari pengguna dimasukkan
+// lewat textContent, BUKAN innerHTML. Browser otomatis meng-escape-nya,
+// jadi nama berisi kode HTML (misalnya tag img atau script) tampil sebagai teks biasa.
+function buatElemen(tag, teks, kelasCss) {
+  const el = document.createElement(tag);
+  if (teks !== undefined && teks !== "") el.textContent = teks;
+  if (kelasCss) el.className = kelasCss;
+  return el;
+}
+
+// Pesan singkat di bawah layar. jenis: "berhasil" | "gagal" | "info"
+function tampilkanPesan(teks, jenis) {
+  const el = document.getElementById("pesan");
+  el.textContent = teks;
+  el.className = "pesan " + (jenis || "berhasil");
+  el.hidden = false;
+  clearTimeout(timerPesan);
+  timerPesan = setTimeout(() => { el.hidden = true; }, 3500);
+}
+
+// Simpan data; kalau gagal langsung beri tahu pengguna.
+function simpanDenganPesan() {
+  const berhasil = simpanData();
+  if (!berhasil) {
+    tampilkanPesan("Gagal menyimpan. Penyimpanan browser penuh atau diblokir.", "gagal");
+  }
+  return berhasil;
+}
+
+// Dialog konfirmasi. Hasilnya true (Ya) atau false (Batal / tombol Esc).
+function konfirmasi(teks) {
+  const dialog = document.getElementById("dialogKonfirmasi");
+  if (typeof dialog.showModal !== "function") return Promise.resolve(window.confirm(teks));
+  document.getElementById("teksKonfirmasi").textContent = teks;
+  dialog.showModal();
+  return new Promise((selesai) => {
+    const tutup = (jawaban) => { dialog.close(); selesai(jawaban); };
+    document.getElementById("tombolYa").onclick = () => tutup(true);
+    document.getElementById("tombolBatal").onclick = () => tutup(false);
+    dialog.oncancel = () => selesai(false);
+  });
+}
+
+function pindahTab(idHalaman) {
+  document.querySelectorAll(".halaman").forEach((h) => { h.hidden = h.id !== idHalaman; });
+  document.querySelectorAll(".tab-tombol").forEach((t) => {
+    t.classList.toggle("aktif", t.dataset.tab === idHalaman);
+  });
+}
+
+function tampilkanPilihanKelas() {
+  const pilih = document.getElementById("pilihKelas");
+  const semua = daftarKelas();
+  pilih.replaceChildren();
+  pilih.disabled = semua.length === 0;
+  if (semua.length === 0) {
+    pilih.append(new Option("— belum ada kelas —", ""));
+    return;
+  }
+  semua.forEach((k) => pilih.append(new Option(k, k))); // new Option aman: memakai teks, bukan HTML
+  pilih.value = kelasAktif;
+}
+
+function tampilkanDaftarSiswa() {
+  const daftar = document.getElementById("daftarSiswa");
+  const siswa = kelasAktif ? siswaDiKelas(kelasAktif) : [];
+  daftar.replaceChildren();
+  document.getElementById("jumlahSiswa").textContent = siswa.length;
+  let pesanKosong = "";
+  if (!kelasAktif) pesanKosong = "Buat kelas dulu dengan tombol \"+ Kelas\" di atas.";
+  else if (siswa.length === 0) pesanKosong = "Belum ada siswa di kelas ini.";
+  document.getElementById("kosongSiswa").textContent = pesanKosong;
+
+  for (const s of siswa) {
+    const baris = buatElemen("li", "", "baris-siswa");
+    const tombolHapus = buatElemen("button", "Hapus", "tombol-bahaya kecil");
+    tombolHapus.type = "button";
+    tombolHapus.dataset.id = s.id;
+    tombolHapus.setAttribute("aria-label", "Hapus " + s.nama);
+    baris.append(buatElemen("span", s.nama, "nama"), tombolHapus);
+    daftar.append(baris);
+  }
+}
+
+// Satu baris absen: nama siswa + 4 tombol H/I/S/A.
+function buatBarisAbsen(siswa, statusSekarang) {
+  const baris = buatElemen("li", "", "baris-absen");
+  const grup = buatElemen("div", "", "grup-status");
+  for (const status of STATUS_VALID) {
+    const tombol = buatElemen("button", status, "tombol-status status-" + status);
+    tombol.type = "button";
+    tombol.dataset.id = siswa.id;
+    tombol.dataset.status = status;
+    tombol.setAttribute("aria-pressed", String(status === statusSekarang));
+    tombol.setAttribute("aria-label", NAMA_STATUS[status] + " – " + siswa.nama);
+    grup.append(tombol);
+  }
+  baris.append(buatElemen("span", siswa.nama, "nama"), grup);
+  return baris;
+}
+
+function tampilkanRingkasan(r) {
+  const kotak = document.getElementById("ringkasan");
+  kotak.replaceChildren();
+  if (!r) return;
+  const urutan = [["H", "Hadir"], ["I", "Izin"], ["S", "Sakit"], ["A", "Alpa"], ["Belum", "Belum"]];
+  for (const [kode, label] of urutan) {
+    const item = buatElemen("div", "", "ringkasan-item status-" + kode);
+    item.append(buatElemen("strong", String(r[kode])), buatElemen("span", label));
+    kotak.append(item);
+  }
+}
+
+function tampilkanAbsen() {
+  const tanggal = document.getElementById("inputTanggal").value;
+  const daftar = document.getElementById("daftarAbsen");
+  const siswa = kelasAktif ? siswaDiKelas(kelasAktif) : [];
+  daftar.replaceChildren();
+  let pesanKosong = "";
+  if (!kelasAktif) pesanKosong = "Buat kelas dulu dengan tombol \"+ Kelas\" di atas.";
+  else if (siswa.length === 0) pesanKosong = "Belum ada siswa. Tambahkan dulu di tab Siswa.";
+  else if (!tanggalValid(tanggal)) pesanKosong = "Pilih tanggal dulu.";
+  document.getElementById("kosongAbsen").textContent = pesanKosong;
+  if (pesanKosong) { tampilkanRingkasan(null); return; }
+
+  for (const s of siswa) daftar.append(buatBarisAbsen(s, ambilStatus(tanggal, kelasAktif, s.id)));
+  tampilkanRingkasan(hitungRingkasan(tanggal, kelasAktif));
+}
+
+function tampilkanSemua() {
+  tampilkanPilihanKelas();
+  tampilkanDaftarSiswa();
+  tampilkanAbsen();
+}
+
+/* =========================================================
+   4. PENANGAN AKSI PENGGUNA (event handler)
+   ========================================================= */
+function ringkasHasilTambah(h) {
+  const bagian = [h.ditambah + " siswa ditambahkan"];
+  if (h.ganda) bagian.push(h.ganda + " dilewati karena sudah ada");
+  if (h.terlaluPanjang) bagian.push(h.terlaluPanjang + " ditolak karena lebih dari " + MAKS_NAMA + " huruf");
+  return bagian.join(", ") + ".";
+}
+
+function saatTambahSiswa(e) {
+  e.preventDefault();
+  if (!kelasAktif) return tampilkanPesan("Buat atau pilih kelas dulu.", "gagal");
+  const input = document.getElementById("inputNama");
+  const hasil = tambahBanyakSiswa(kelasAktif, input.value);
+  const total = hasil.ditambah + hasil.ganda + hasil.terlaluPanjang;
+  if (total === 0) return tampilkanPesan("Isi minimal satu nama siswa.", "gagal");
+  if (hasil.ditambah > 0) {
+    if (!simpanDenganPesan()) return;
+    input.value = "";
+  }
+  tampilkanPesan(ringkasHasilTambah(hasil), hasil.ditambah > 0 ? "berhasil" : "gagal");
+  tampilkanSemua();
+}
+
+async function saatKlikDaftarSiswa(e) {
+  const tombol = e.target.closest("button[data-id]");
+  if (!tombol) return;
+  const siswa = data.siswa.find((s) => s.id === tombol.dataset.id);
+  if (!siswa) return;
+  const yakin = await konfirmasi(
+    "Hapus \"" + siswa.nama + "\" dari " + siswa.kelas +
+    "? Semua catatan absennya ikut terhapus dan tidak bisa dibatalkan."
+  );
+  if (!yakin) return;
+  hapusSiswa(siswa.id);
+  if (!simpanDenganPesan()) return;
+  tampilkanPesan(siswa.nama + " sudah dihapus.");
+  tampilkanSemua();
+}
+
+function saatKlikStatus(e) {
+  const tombol = e.target.closest("button[data-status]");
+  if (!tombol) return;
+  const tanggal = document.getElementById("inputTanggal").value;
+  if (!tanggalValid(tanggal)) return tampilkanPesan("Pilih tanggal dulu.", "gagal");
+  aturStatus(tanggal, kelasAktif, tombol.dataset.id, tombol.dataset.status);
+  if (!simpanDenganPesan()) return;
+  tampilkanAbsen(); // tombol yang dipilih berwarna penuh & ringkasan ikut berubah
+}
+
+function saatGantiTanggal() {
+  const tanggal = document.getElementById("inputTanggal").value;
+  if (tanggal > tanggalHariIni()) {
+    tampilkanPesan("Perhatian: tanggal ini ada di masa depan.", "info");
+  }
+  tampilkanAbsen();
+}
+
+function saatGantiKelas(e) {
+  kelasAktif = e.target.value;
+  data.kelasTerakhir = kelasAktif;
+  simpanDenganPesan();
+  tampilkanSemua();
+}
+
+function saatBuatKelas(e) {
+  e.preventDefault();
+  const input = document.getElementById("inputKelasBaru");
+  const nama = rapikanTeks(input.value);
+  if (nama === "" || nama.length > MAKS_KELAS) {
+    return tampilkanPesan("Nama kelas wajib diisi, maksimal " + MAKS_KELAS + " huruf.", "gagal");
+  }
+  const sudahAda = daftarKelas().find((k) => samaNama(k, nama));
+  kelasAktif = sudahAda || nama;
+  data.kelasTerakhir = kelasAktif;
+  if (!simpanDenganPesan()) return;
+  input.value = "";
+  document.getElementById("formKelasBaru").hidden = true;
+  tampilkanPesan(sudahAda
+    ? "Kelas " + kelasAktif + " sudah ada, sekarang dipilih."
+    : "Kelas " + kelasAktif + " dibuat. Silakan tambahkan siswanya.");
+  tampilkanSemua();
+  pindahTab("halSiswa");
+}
+
+function saatKlikKelasBaru() {
+  const form = document.getElementById("formKelasBaru");
+  form.hidden = !form.hidden;
+  if (!form.hidden) document.getElementById("inputKelasBaru").focus();
+}
+
+/* =========================================================
+   5. MULAI APLIKASI
+   ========================================================= */
+function mulai() {
+  data = muatData();
+  kelasAktif = data.kelasTerakhir || daftarKelas()[0] || "";
+  document.getElementById("inputTanggal").value = tanggalHariIni();
+
+  document.querySelectorAll(".tab-tombol").forEach((t) => {
+    t.addEventListener("click", () => pindahTab(t.dataset.tab));
+  });
+  document.getElementById("pilihKelas").addEventListener("change", saatGantiKelas);
+  document.getElementById("tombolKelasBaru").addEventListener("click", saatKlikKelasBaru);
+  document.getElementById("formKelasBaru").addEventListener("submit", saatBuatKelas);
+  document.getElementById("formSiswa").addEventListener("submit", saatTambahSiswa);
+  document.getElementById("daftarSiswa").addEventListener("click", saatKlikDaftarSiswa);
+  document.getElementById("inputTanggal").addEventListener("change", saatGantiTanggal);
+  document.getElementById("daftarAbsen").addEventListener("click", saatKlikStatus);
+
+  tampilkanSemua();
+}
+
+mulai();
+</script>
+</body>
+</html>
